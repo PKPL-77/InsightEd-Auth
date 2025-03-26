@@ -134,9 +134,8 @@ class RegisterView(APIView):
             
             # Add instructor-specific data if applicable
             if user.role == 'instructor':
-                instructor = user.instruktur
-                response_data['user']['instructor_id'] = str(instructor.instruktur_id)
-                response_data['user']['keahlian'] = instructor.keahlian
+                response_data['user']['instructor_id'] = str(user.instruktur_id)
+                response_data['user']['keahlian'] = user.keahlian
             
             return Response(response_data, status=status.HTTP_201_CREATED)
         

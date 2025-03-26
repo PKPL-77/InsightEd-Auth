@@ -71,15 +71,19 @@ class RegisterSerializer(serializers.ModelSerializer):
         # Handle instructor creation
         if role == 'instructor':
             keahlian = validated_data.pop('keahlian')
-            user = Pengguna.objects.create_user(**validated_data)
-            Instruktur.objects.create(
-                pengguna_ptr_id=user.id,
-                keahlian=keahlian
+            password = validated_data.pop('password')
+            
+            # Create instructor directly
+            instructor = Instruktur(
+                keahlian=keahlian,
+                **validated_data
             )
-            return user
+            instructor.set_password(password)
+            instructor.save()
+            return instructor
         
         # Regular student creation
         else:
             if 'keahlian' in validated_data:
-                validated_data.pop('keahlian')  # Remove if accidentally included
+                validated_data.pop('keahlian')
             return Pengguna.objects.create_user(**validated_data)

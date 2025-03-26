@@ -82,3 +82,15 @@ class UserProfileView(APIView):
             return JsonResponse({'success': True, 'message': 'Profile updated successfully'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=400)
+
+    def delete(self, request):
+        """
+        - Delete the user account
+        - Return success/failure response
+        """
+        try:
+            user = get_object_or_404(Pengguna, id=request.user.id)
+            user.delete()
+            return JsonResponse({'success': True, 'message': 'User account deleted successfully'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=400)

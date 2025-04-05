@@ -1,6 +1,7 @@
 import uuid
 from django.db import models
 from django.contrib.auth.models import AbstractUser
+from rest_framework_simplejwt.tokens import RefreshToken
 
 class Pengguna(AbstractUser):
     """
@@ -9,6 +10,16 @@ class Pengguna(AbstractUser):
     """
     user_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     role = models.CharField(max_length=50, default='student')
+
+    def tokens(self):
+        """
+        Generate JWT tokens for the user.
+        """
+        refresh = RefreshToken.for_user(self)
+        return {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
     
     # AbstractUser already provides:
     # - username

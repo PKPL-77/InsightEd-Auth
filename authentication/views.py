@@ -9,7 +9,7 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .serializers import (
     LoginSerializer, TokenSerializer, 
-    RefreshTokenSerializer, RegisterSerializer
+    RefreshTokenSerializer, RegisterSerializer, LogoutSerializer
 )
 from .utils.token_generator import generate_jwt_token
 
@@ -17,57 +17,26 @@ class LoginView(APIView):
     """
     Handle user login and token generation
     """
+    serializer_class = LoginSerializer
+
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            
-            # Generate tokens
-            refresh = RefreshToken.for_user(user)
-            data = {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh)
-            }
-            
-            token_serializer = TokenSerializer(data=data)
-            token_serializer.is_valid()
-            
-            return Response({
-                'status': 'success',
-                'user': {
-                    'id': str(user.user_id),
-                    'username': user.username,
-                    'role': user.role
-                },
-                'tokens': token_serializer.data
-            }, status=status.HTTP_200_OK)
-        
-        return Response({
-            'status': 'error',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class LogoutView(APIView):
     """
     Handle user logout and token blacklisting
     """
     permission_classes = [IsAuthenticated]
-    
+    serializer_class = LogoutSerializer
+
     def post(self, request):
-        try:
-            refresh_token = request.data.get('refresh')
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            
-            return Response({
-                'status': 'success',
-                'message': 'User logged out successfully'
-            }, status=status.HTTP_200_OK)
-        except TokenError:
-            return Response({
-                'status': 'error',
-                'message': 'Invalid token'
-            }, status=status.HTTP_400_BAD_REQUEST)
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(status=status.HTTP_205_RESET_CONTENT)
 
 class TokenRefreshView(APIView):
     """

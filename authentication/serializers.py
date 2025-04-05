@@ -2,10 +2,25 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from user_management.models import Pengguna, Instruktur
 from django.contrib.auth.password_validation import validate_password
+from user_management.models import Pengguna
+from rest_framework_simplejwt.tokens import RefreshToken
 
-class LoginSerializer(serializers.Serializer):
+class LoginSerializer(serializers.ModelSerializer):
     username = serializers.CharField(max_length=150)
     password = serializers.CharField(max_length=128, write_only=True)
+    tokens = serializers.SerializerMethodField()
+
+    def get_tokens(self, obj):
+        user = Pengguna.objects.get(username=obj['username'])
+
+        return {
+            'refresh': user.tokens()['refresh'],
+            'access': user.tokens()['access']
+        }
+    
+    class Meta:
+        model = Pengguna
+        fields = ['username', 'password', 'tokens']
     
     def validate(self, data):
         username = data.get('username', '')
@@ -87,3 +102,19 @@ class RegisterSerializer(serializers.ModelSerializer):
             if 'keahlian' in validated_data:
                 validated_data.pop('keahlian')
             return Pengguna.objects.create_user(**validated_data)
+        
+class LogoutSerializer(serializers.Serializer):
+    refresh = serializers.CharField()
+    
+    def validate(self, attrs):
+        if 'refresh' not in attrs:
+            raise serializers.ValidationError("Refresh token is required.")
+        self.token = attrs['refresh']
+        return attrs
+
+    def save(self, **kwargs):
+        try:
+            RefreshToken(self.token).blacklist()
+
+        except Exception as e:
+            self.fail('bad_token')

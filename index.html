@@ -1,0 +1,55 @@
+.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InsightED Auth Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+        h1 {
+            color: #2c3e50;
+        }
+        .success {
+            color: #27ae60;
+            font-weight: bold;
+            margin: 1.5rem 0;
+            font-size: 1.2rem;
+        }
+        .timestamp {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            margin-top: 2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>InsightED Authentication Service</h1>
+        <div class="success">✅ Successfully Deployed!</div>
+        <p>This is a placeholder page indicating that the authentication service has been successfully deployed.</p>
+        <p>For security reasons, direct access to this service should be restricted in production.</p>
+        <div class="timestamp">Page loaded: <span id="timestamp"></span></div>
+    </div>
+
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

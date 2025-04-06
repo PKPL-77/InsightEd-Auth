@@ -4,6 +4,8 @@ build_image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
   script:
+    - echo "Listing files in build context:"
+    - ls -la "${CI_PROJECT_DIR}"
     - echo "Building and Pushing Docker image $TAG_IMAGE_NAME with Kaniko..."
     - |
       cat << EOF > /kaniko/.docker/config.json

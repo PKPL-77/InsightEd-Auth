@@ -15,7 +15,3 @@ default:
     when:
       - runner_system_failure
       - stuck_or_timeout_failure
-
-script:
-  - echo "Listing files in build context:"
-  - ls -la "${CI_PROJECT_DIR}"

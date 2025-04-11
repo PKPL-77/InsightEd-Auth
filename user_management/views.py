@@ -1,6 +1,8 @@
 from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-import json
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import update_session_auth_hash, logout
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib import messages
 from .models import Pengguna, Admin, Instruktur
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
@@ -38,8 +40,9 @@ class UserProfileView(APIView):
             instruktur = Instruktur.objects.get(id=user.id)
             data['instruktur_id'] = str(instruktur.instruktur_id)
             data['keahlian'] = instruktur.keahlian
-            
-        return JsonResponse(data)
+        
+        # Render template
+        return render(request, 'user_management/profile.html', {'user': data})
 
     def post(self, request):
         """
@@ -49,11 +52,7 @@ class UserProfileView(APIView):
         user = get_object_or_404(Pengguna, id=request.user.id)
         
         try:
-            # For JSON data
-            if request.content_type == 'application/json':
-                data = json.loads(request.body)
-            else:
-                data = request.POST
+            data = request.POST
             
             # Update user fields
             if 'email' in data:
@@ -65,10 +64,8 @@ class UserProfileView(APIView):
             if 'username' in data and user.username != data['username']:
                 # Check if username is available
                 if Pengguna.objects.filter(username=data['username']).exists():
-                    return JsonResponse({
-                        'success': False, 
-                        'message': 'Username already taken'
-                    }, status=400)
+                    messages.error(request, 'Username already taken')
+                    return redirect('user_management:profile')
                 user.username = data['username']
                 
             # Role-specific updates
@@ -79,9 +76,12 @@ class UserProfileView(APIView):
             
             user.save()
             
-            return JsonResponse({'success': True, 'message': 'Profile updated successfully'})
+            messages.success(request, 'Profile updated successfully')
+            return redirect('user_management:profile')
+            
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+            messages.error(request, f'Error updating profile: {str(e)}')
+            return redirect('user_management:profile')
 
     def delete(self, request):
         """
@@ -91,6 +91,80 @@ class UserProfileView(APIView):
         try:
             user = get_object_or_404(Pengguna, id=request.user.id)
             user.delete()
-            return JsonResponse({'success': True, 'message': 'User account deleted successfully'})
+            
+            messages.success(request, 'Your account has been deleted successfully')
+            return redirect('authentication:login')
+            
         except Exception as e:
-            return JsonResponse({'success': False, 'message': str(e)}, status=400)
+            messages.error(request, f'Error deleting account: {str(e)}')
+            return redirect('user_management:profile')
+
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        """
+        Change user password
+        """
+        form = PasswordChangeForm(user=request.user, data=request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Update the session to prevent logging out
+            update_session_auth_hash(request, user)
+            
+            messages.success(request, 'Your password was successfully updated!')
+            return redirect('user_management:profile')
+        else:
+            # Get user data for the template, similar to ProfileView
+            user = get_object_or_404(Pengguna, id=request.user.id)
+            user_data = {
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'role': user.role,
+                'user_id': str(user.user_id),
+            }
+            
+            # Add role-specific data
+            if user.role == 'admin':
+                admin = Admin.objects.get(id=user.id)
+                user_data['admin_id'] = str(admin.admin_id)
+                user_data['is_staff'] = admin.is_staff
+                user_data['is_superuser'] = admin.is_superuser
+            
+            elif user.role == 'instructor':
+                instruktur = Instruktur.objects.get(id=user.id)
+                user_data['instruktur_id'] = str(instruktur.instruktur_id)
+                user_data['keahlian'] = instruktur.keahlian
+            
+            messages.error(request, 'Password change failed. Please correct the errors below.')
+            return render(request, 'user_management/profile.html', {
+                'user': user_data,
+                'password_form': form,
+                'active_tab': 'security'  # This will help the template show the security tab
+            })
+
+class DeleteAccountView(APIView):
+    """
+    Handle account deletion and logging out the user
+    """
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        try:
+            # Get the user from the request
+            user = request.user
+            
+            # Log the user out first (important to do this before deleting)
+            logout(request)
+            
+            # Delete the user account
+            user.delete()
+            
+            messages.success(request, 'Your account has been deleted successfully')
+            return redirect('home')
+            
+        except Exception as e:
+            messages.error(request, f'Error deleting account: {str(e)}')
+            return redirect('user_management:profile')

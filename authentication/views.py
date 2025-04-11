@@ -1,71 +1,61 @@
-from django.shortcuts import render
-from rest_framework import status
+from django.shortcuts import render, redirect
+from django.contrib.auth import login, logout
+from django.contrib import messages
 from rest_framework.views import APIView
-from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.views import TokenRefreshView
 
-from .serializers import (
-    LoginSerializer, TokenSerializer, 
-    RefreshTokenSerializer, RegisterSerializer, LogoutSerializer
-)
-from .utils.token_generator import generate_jwt_token
+from .forms import LoginForm, RegisterForm
 
 class LoginView(APIView):
     """
-    Handle user login and token generation
+    Handle user login using Django session authentication
     """
-    serializer_class = LoginSerializer
-
+    def get(self, request):
+        # If user is already logged in, redirect to profile
+        if request.user.is_authenticated:
+            return redirect('/users/profile/')
+        
+        # Render login template with empty form
+        form = LoginForm()
+        return render(request, 'authentication/login.html', {'form': form})
+    
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        form = LoginForm(request.POST)
+        
+        if form.is_valid():
+            user = form.cleaned_data['user']
+            
+            # Create Django session
+            login(request, user)
+            
+            # Set success message
+            messages.success(request, f'Welcome back, {user.first_name}!')
+            
+            # Redirect to profile page
+            return redirect('/users/profile/')
+        
+        # Authentication failed - form.errors will contain the error messages
+        return render(request, 'authentication/login.html', {'form': form})
 
 class LogoutView(APIView):
     """
-    Handle user logout and token blacklisting
+    Handle user logout using Django session authentication
     """
     permission_classes = [IsAuthenticated]
-    serializer_class = LogoutSerializer
-
+    
+    def get(self, request):
+        # Show logout confirmation page
+        return render(request, 'authentication/logout_confirm.html')
+    
     def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-
-        return Response(status=status.HTTP_205_RESET_CONTENT)
-
-class TokenRefreshView(APIView):
-    """
-    Refresh access token using refresh token
-    """
-    def post(self, request):
-        serializer = RefreshTokenSerializer(data=request.data)
-        if serializer.is_valid():
-            try:
-                refresh = RefreshToken(serializer.validated_data['refresh'])
-                data = {
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh)
-                }
-                
-                return Response({
-                    'status': 'success',
-                    'tokens': data
-                }, status=status.HTTP_200_OK)
-            except TokenError:
-                return Response({
-                    'status': 'error',
-                    'message': 'Invalid or expired token'
-                }, status=status.HTTP_401_UNAUTHORIZED)
+        # End Django session
+        logout(request)
         
-        return Response({
-            'status': 'error',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        # Set success message
+        messages.success(request, 'You have been successfully logged out.')
+        
+        # Redirect to login page
+        return redirect('/auth/login/')
 
 class RegisterView(APIView):
     """
@@ -73,42 +63,29 @@ class RegisterView(APIView):
     """
     permission_classes = [AllowAny]
     
-    def post(self, request):
-        serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            # Create the user (serializer handles student vs instructor logic)
-            user = serializer.save()
-            
-            # Generate tokens for the new user
-            refresh = RefreshToken.for_user(user)
-            data = {
-                'access': str(refresh.access_token),
-                'refresh': str(refresh)
-            }
-            
-            token_serializer = TokenSerializer(data=data)
-            token_serializer.is_valid()
-            
-            response_data = {
-                'status': 'success',
-                'message': f"{user.role.capitalize()} registered successfully",
-                'user': {
-                    'id': str(user.user_id),
-                    'username': user.username,
-                    'email': user.email,
-                    'role': user.role
-                },
-                'tokens': token_serializer.data
-            }
-            
-            # Add instructor-specific data if applicable
-            if user.role == 'instructor':
-                response_data['user']['instructor_id'] = str(user.instruktur_id)
-                response_data['user']['keahlian'] = user.keahlian
-            
-            return Response(response_data, status=status.HTTP_201_CREATED)
+    def get(self, request):
+        # If user is already logged in, redirect to profile
+        if request.user.is_authenticated:
+            return redirect('/users/profile/')
         
-        return Response({
-            'status': 'error',
-            'errors': serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
+        # Render registration template with empty form
+        form = RegisterForm()
+        return render(request, 'authentication/register.html', {'form': form})
+    
+    def post(self, request):
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            # Create the user (form handles student vs instructor logic)
+            user = form.save()
+            
+            # Automatically log in the new user
+            login(request, user)
+            
+            # Set success message
+            messages.success(request, f'Welcome to InsightED, {user.first_name}! Your account has been created.')
+            
+            # Redirect to profile page
+            return redirect('/users/profile/')
+        
+        # Re-render the registration form with errors
+        return render(request, 'authentication/register.html', {'form': form})

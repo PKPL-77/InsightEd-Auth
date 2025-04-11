@@ -10,18 +10,28 @@
         {% csrf_token %}
         
         <div>
-            <label for="username" class="form-label">Username</label>
-            <input type="text" id="username" name="username" required class="form-input" placeholder="Enter your username">
+            <label for="{{ form.username.id_for_label }}" class="form-label">Username</label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="form-error">
+                    {{ form.username.errors }}
+                </div>
+            {% endif %}
         </div>
         
         <div>
-            <label for="password" class="form-label">Password</label>
-            <input type="password" id="password" name="password" required class="form-input" placeholder="Enter your password">
+            <label for="{{ form.password.id_for_label }}" class="form-label">Password</label>
+            {{ form.password }}
+            {% if form.password.errors %}
+                <div class="form-error">
+                    {{ form.password.errors }}
+                </div>
+            {% endif %}
         </div>
         
-        {% if form.errors %}
+        {% if form.non_field_errors %}
             <div class="form-error">
-                <p>Your username and password didn't match. Please try again.</p>
+                {{ form.non_field_errors }}
             </div>
         {% endif %}
         

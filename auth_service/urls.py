@@ -16,9 +16,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from . import views
 
 urlpatterns = [
+    # Homepage route
+    path('', views.home, name='home'),
+    
+    # Admin routes
     path('admin/', admin.site.urls),
-    path('api/auth/', include('authentication.urls')),
-    path('users/', include('user_management.urls')),
+    
+    # Authentication routes with namespace - removed /api/ prefix
+    path('auth/', include('authentication.urls', namespace='authentication')),
+    
+    # User management routes with namespace
+    path('users/', include('user_management.urls', namespace='user_management')),
 ]

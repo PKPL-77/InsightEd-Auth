@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Login - InsightED{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto bg-white p-8 rounded-xl shadow-md">
+    <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">Log In to InsightED</h1>
+    
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <div>
+            <label for="username" class="form-label">Username</label>
+            <input type="text" id="username" name="username" required class="form-input" placeholder="Enter your username">
+        </div>
+        
+        <div>
+            <label for="password" class="form-label">Password</label>
+            <input type="password" id="password" name="password" required class="form-input" placeholder="Enter your password">
+        </div>
+        
+        {% if form.errors %}
+            <div class="form-error">
+                <p>Your username and password didn't match. Please try again.</p>
+            </div>
+        {% endif %}
+        
+        <div>
+            <button type="submit" class="btn-primary w-full">Log In</button>
+        </div>
+    </form>
+    
+    <div class="mt-6 text-center text-sm">
+        <p class="text-gray-600">Don't have an account? 
+            <a href="{% url 'authentication:register' %}" class="text-blue-600 hover:text-blue-800">Register here</a>
+        </p>
+    </div>
+</div>
+{% endblock %}

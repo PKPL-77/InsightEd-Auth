@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}My Profile - InsightED{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <div class="bg-white rounded-xl shadow-md overflow-hidden">
+        <!-- Profile Header -->
+        <div class="bg-blue-600 px-6 py-8">
+            <div class="flex flex-col md:flex-row items-center md:items-end">
+                <div class="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-4 md:mb-0 md:mr-6">
+                    <span class="text-4xl font-bold text-blue-600">{{ user.first_name|slice:":1" }}{{ user.last_name|slice:":1" }}</span>
+                </div>
+                <div class="text-center md:text-left">
+                    <h1 class="text-2xl font-bold text-white">{{ user.first_name }} {{ user.last_name }}</h1>
+                    <p class="text-blue-100">{{ user.role|title }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="border-b border-gray-200">
+            <nav class="flex">
+                <button id="tab-profile" onclick="showTab('profile')" class="py-4 px-6 text-blue-600 border-b-2 border-blue-600 font-medium">
+                    Profile
+                </button>
+                <button id="tab-security" onclick="showTab('security')" class="py-4 px-6 text-gray-600 font-medium">
+                    Security
+                </button>
+                <button id="tab-delete" onclick="showTab('delete')" class="py-4 px-6 text-gray-600 font-medium">
+                    Account
+                </button>
+            </nav>
+        </div>
+        
+        <!-- Profile Tab Content -->
+        <div id="content-profile" class="p-6">
+            <form id="profile-form" method="post" action="{% url 'user_management:profile' %}" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" id="username" name="username" value="{{ user.username }}" class="form-input">
+                    </div>
+                    
+                    <div>
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" name="email" value="{{ user.email }}" class="form-input">
+                    </div>
+                    
+                    <div>
+                        <label for="first_name" class="form-label">First Name</label>
+                        <input type="text" id="first_name" name="first_name" value="{{ user.first_name }}" class="form-input">
+                    </div>
+                    
+                    <div>
+                        <label for="last_name" class="form-label">Last Name</label>
+                        <input type="text" id="last_name" name="last_name" value="{{ user.last_name }}" class="form-input">
+                    </div>
+                    
+                    {% if user.role == 'instructor' %}
+                    <div>
+                        <label for="keahlian" class="form-label">Expertise Level</label>
+                        <input type="number" id="keahlian" name="keahlian" min="1" max="10" value="{{ user.keahlian }}" class="form-input">
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="submit" class="btn-primary">Update Profile</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Security Tab Content -->
+        <div id="content-security" class="p-6 hidden">
+            <form id="password-form" method="post" action="{% url 'user_management:change_password' %}" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="space-y-4">
+                    <div>
+                        <label for="old_password" class="form-label">Current Password</label>
+                        <input type="password" id="old_password" name="old_password" required class="form-input">
+                        {% if password_form.old_password.errors %}
+                            <div class="form-error">
+                                {% for error in password_form.old_password.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="new_password1" class="form-label">New Password</label>
+                        <input type="password" id="new_password1" name="new_password1" required class="form-input">
+                        {% if password_form.new_password1.errors %}
+                            <div class="form-error">
+                                {% for error in password_form.new_password1.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label for="new_password2" class="form-label">Confirm New Password</label>
+                        <input type="password" id="new_password2" name="new_password2" required class="form-input">
+                        {% if password_form.new_password2.errors %}
+                            <div class="form-error">
+                                {% for error in password_form.new_password2.errors %}
+                                    <p>{{ error }}</p>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="flex justify-end">
+                    <button type="submit" class="btn-primary">Change Password</button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Account Tab Content -->
+        <div id="content-delete" class="p-6 hidden">
+            <div class="space-y-6">
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h3 class="text-lg font-medium text-red-800">Delete Your Account</h3>
+                    <p class="mt-2 text-sm text-red-600">
+                        Warning: This action is irreversible. All your data will be permanently deleted.
+                    </p>
+                    <div class="mt-4">
+                        <button type="button" onclick="showDeleteConfirmation()" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-75 transition-colors duration-200">
+                            Delete Account
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Delete Confirmation Dialog -->
+                <div id="delete-confirmation" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center">
+                    <div class="bg-white p-6 rounded-lg shadow-xl max-w-md w-full">
+                        <h3 class="text-lg font-bold text-gray-900">Confirm Account Deletion</h3>
+                        <p class="mt-2 text-gray-600">
+                            Are you sure you want to delete your account? This action cannot be undone.
+                        </p>
+                        <div class="mt-6 flex justify-end space-x-4">
+                            <button type="button" onclick="hideDeleteConfirmation()" class="btn-secondary">
+                                Cancel
+                            </button>
+                            <form method="post" action="{% url 'user_management:delete_account' %}">
+                                {% csrf_token %}
+                                <button type="submit" class="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700">
+                                    Yes, Delete My Account
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    function showTab(tabName) {
+        // Hide all content
+        document.getElementById('content-profile').classList.add('hidden');
+        document.getElementById('content-security').classList.add('hidden');
+        document.getElementById('content-delete').classList.add('hidden');
+        
+        // Reset all tab buttons
+        document.getElementById('tab-profile').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById('tab-profile').classList.add('text-gray-600');
+        document.getElementById('tab-security').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById('tab-security').classList.add('text-gray-600');
+        document.getElementById('tab-delete').classList.remove('text-blue-600', 'border-b-2', 'border-blue-600');
+        document.getElementById('tab-delete').classList.add('text-gray-600');
+        
+        // Show selected content and highlight tab
+        document.getElementById('content-' + tabName).classList.remove('hidden');
+        document.getElementById('tab-' + tabName).classList.remove('text-gray-600');
+        document.getElementById('tab-' + tabName).classList.add('text-blue-600', 'border-b-2', 'border-blue-600');
+    }
+    
+    function showDeleteConfirmation() {
+        document.getElementById('delete-confirmation').classList.remove('hidden');
+    }
+    
+    function hideDeleteConfirmation() {
+        document.getElementById('delete-confirmation').classList.add('hidden');
+    }
+
+    // Check if we need to show a specific tab (for example, after password form errors)
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if active_tab %}
+            showTab('{{ active_tab }}');
+        {% endif %}
+    });
+</script>
+{% endblock %}
+{% endblock %}
